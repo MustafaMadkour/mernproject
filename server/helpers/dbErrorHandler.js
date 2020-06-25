@@ -1,3 +1,5 @@
+'use strict'
+
 const getUniqueErrorMessage = (err) => {
 	let output;
 	try {
