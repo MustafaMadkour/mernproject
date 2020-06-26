@@ -9,6 +9,15 @@ import Template from '../template';
 import userRoutes from './routes/user.routes';
 import authRoutes from './routes/auth.routes';
 
+// Server-side rendring modules
+import React from 'react';
+import ReactDOMServer from 'react-dom/server';
+import { StaticRouter } from 'react-router-dom/StaticRouter';
+import MainRouter from '../client/MainRouter';
+
+import { ServerStyleSheets, ThemeProvider } from '@material-ui/styles';
+import theme from '../client/theme';
+
 //comment out before building for production
 import devBundle from './devBundle';
 
@@ -32,8 +41,30 @@ app.use('/dist', express.static(path.join(CURRENT_WORKING_DIR, 'dist')));
 app.use('/', userRoutes);
 app.use('/', authRoutes);
 
+// Generating css and markup for rendered server-side on GET requests
 app.get('*', (req, res) => {
-	res.status(200).send(Template());
+	const sheets = new ServerStyleSheets();
+	const context = {};
+	const markup = ReactDOMServer.renderToString(
+		sheets.collect(
+			<StaticRouter loication={req.url} context={context}>
+				<ThemeProvider theme={theme}>
+					<MainRouter />
+				</ThemeProvider>
+			</StaticRouter>,
+		),
+	);
+
+	if (context.url) {
+		return res.redirect(303, context.url);
+	}
+	const css = sheets.toString();
+	res.status(200).send(
+		Template({
+			markup: markup,
+			css: css,
+		}),
+	);
 });
 
 // Catch unauthorised errors
